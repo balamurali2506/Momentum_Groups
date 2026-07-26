@@ -52,7 +52,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md bg-white dark:bg-[#1e1e1e] rounded-3xl border border-stone-200 dark:border-[#2d2d2d] p-8 shadow-2xl">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-stone-900 dark:text-white mb-2" style={{ fontFamily: "'MedievalSharp', cursive" }}>Welcome Back</h1>
+            <h1 className="text-3xl font-bold text-stone-900 dark:text-white mb-2" style={{ fontFamily: ", cursive" }}>Welcome Back</h1>
             <p className="text-stone-600 dark:text-stone-400">Sign in to continue your learning journey</p>
           </div>
 

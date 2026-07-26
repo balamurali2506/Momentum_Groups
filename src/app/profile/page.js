@@ -128,7 +128,7 @@ export default function ProfilePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-white" style={{ fontFamily: "'MedievalSharp', cursive" }}>Profile Dashboard</h1>
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-white" style={{ fontFamily: ", cursive" }}>Profile Dashboard</h1>
           <p className="text-stone-600 dark:text-stone-400 mt-2 text-lg">Track your progress, manage your details, and view your achievements.</p>
         </div>
 
