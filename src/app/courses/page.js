@@ -155,7 +155,7 @@ export default function CoursesPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-stone-900 mb-2" style={{ fontFamily: "'', cursive" }}>
+          <h1 className="text-4xl font-bold text-stone-900 mb-2" style={{ fontFamily: ", cursive" }}>
             Explore Courses
           </h1>
           <p className="text-stone-600 text-lg">

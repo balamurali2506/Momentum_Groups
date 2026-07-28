@@ -98,7 +98,7 @@ export default function DashboardPage() {
         {/* Dashboard Header */}
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-10">
           <div>
-            <h1 className="text-3xl font-bold text-stone-900 dark:text-white" style={{ fontFamily: "'MedievalSharp', cursive" }}>My Learning Dashboard</h1>
+            <h1 className="text-3xl font-bold text-stone-900 dark:text-white" style={{ fontFamily: ", cursive" }}>My Learning Dashboard</h1>
             <p className="text-stone-600 dark:text-stone-400 mt-1">Welcome back, {displayName}! Keep up the great work.</p>
           </div>
           <Link href="/courses" className="px-6 py-3 bg-stone-900 dark:bg-amber-600 text-[#F9F3E7] dark:text-white rounded-xl font-semibold hover:bg-stone-800 dark:hover:bg-amber-700 transition-all shadow-md text-center flex items-center justify-center gap-2">

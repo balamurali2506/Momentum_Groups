@@ -6,10 +6,11 @@ import { useSession, signOut } from 'next-auth/react';
 import { useTheme } from '@/app/providers';
 
 export default function Navbar() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const dropdownRef = useRef(null);
 
   const handleLogout = async () => {
@@ -27,28 +28,16 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 🔥 STRICT Avatar Validation
-  const isValidImage = session?.user?.image && typeof session.user.image === 'string' && session.user.image.length > 5;
+  // Reset image error when session changes
+  useEffect(() => {
+    setImageError(false);
+  }, [session]);
+
+  // Get user initial for fallback avatar
   const userInitial = (session?.user?.name || session?.user?.email || 'U').charAt(0).toUpperCase();
-
-  // Reusable Avatar Component
-  const Avatar = ({ size = 'w-11 h-11', textSize = 'text-lg' }) => (
-    isValidImage ? (
-      <img 
-        src={session.user.image} 
-        alt="Profile" 
-        className={`${size} rounded-full object-cover border-2 border-white dark:border-stone-700 shadow-sm`} 
-      />
-    ) : (
-      <div className={`${size} rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold ${textSize} border-2 border-white dark:border-stone-700 shadow-sm`}>
-        {userInitial}
-      </div>
-    )
-  );
-
-  // 🔥 Conditional Dashboard Link based on Role
-  const dashboardPath = session?.user?.role === 'admin' ? '/admin' : '/dashboard';
-  const dashboardLabel = session?.user?.role === 'admin' ? 'Admin Dashboard' : 'Dashboard';
+  
+  // Check if we should show the image
+  const showImage = session?.user?.image && !imageError;
 
   return (
     <nav className="sticky top-4 z-50 w-[calc(100%-2rem)] mx-auto backdrop-blur-2xl bg-white/70 dark:bg-stone-900/70 border border-white/40 dark:border-stone-700/50 rounded-2xl shadow-xl transition-all duration-300">
@@ -75,49 +64,106 @@ export default function Navbar() {
 
           {/* RIGHT: Auth Buttons OR Profile Dropdown */}
           <div className="hidden md:flex items-center gap-4 z-10">
-            {session?.user ? (
+            {status === 'authenticated' && session?.user ? (
               <div className="relative" ref={dropdownRef}>
-                <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 focus:outline-none group">
-                  <Avatar />
+                <button 
+                  onClick={() => setIsProfileOpen(!isProfileOpen)} 
+                  className="flex items-center gap-2 focus:outline-none group"
+                >
+                  {/* Profile Image with Error Handling */}
+                  {showImage ? (
+                    <img 
+                      src={session.user.image} 
+                      alt="Profile" 
+                      className="w-11 h-11 rounded-full object-cover border-2 border-white dark:border-stone-700 shadow-sm"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    /* Fallback Avatar with Initial */
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg border-2 border-white dark:border-stone-700 shadow-sm">
+                      {userInitial}
+                    </div>
+                  )}
                 </button>
 
+                {/* Profile Dropdown Menu */}
                 {isProfileOpen && (
                   <div className="absolute right-0 mt-3 w-64 bg-white/90 dark:bg-[#1e1e1e]/90 backdrop-blur-xl rounded-2xl border border-stone-200 dark:border-[#2d2d2d] shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="px-4 py-3 border-b border-stone-100 dark:border-[#2d2d2d] flex items-center gap-3">
-                      <Avatar size="w-12 h-12" textSize="text-xl" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-stone-900 dark:text-white truncate">{session.user.name || 'User'}</p>
-                        <p className="text-xs text-stone-500 dark:text-stone-400 truncate">{session.user.email}</p>
+                      {/* Dropdown Avatar */}
+                      {showImage ? (
+                        <img 
+                          src={session.user.image} 
+                          alt="Profile" 
+                          className="w-12 h-12 rounded-full object-cover border-2 border-stone-200 dark:border-stone-700"
+                          onError={() => setImageError(true)}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl border-2 border-stone-200 dark:border-stone-700">
+                          {userInitial}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-stone-900 dark:text-white truncate">
+                          {session.user.name || 'User'}
+                        </p>
+                        <p className="text-xs text-stone-500 dark:text-stone-400 truncate">
+                          {session.user.email}
+                        </p>
                       </div>
                     </div>
                     
-                    {/* 🔥 Theme Toggle Inside Dropdown */}
+                    {/* Theme Toggle */}
                     <button 
                       onClick={toggleTheme} 
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-[#2d2d2d] transition-colors text-left"
                     >
                       {theme === 'dark' ? (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
                       ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
                       )}
                       {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                     </button>
 
-                    {/* 🔥 Conditional Dashboard Link */}
-                    <Link href={dashboardPath} onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-[#2d2d2d] transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                      {dashboardLabel}
+                    {/* Dashboard Link */}
+                    <Link 
+                      href={session.user.role === 'admin' ? '/admin' : '/dashboard'} 
+                      onClick={() => setIsProfileOpen(false)} 
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-[#2d2d2d] transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                      </svg>
+                      {session.user.role === 'admin' ? 'Admin Dashboard' : 'Dashboard'}
                     </Link>
-                    <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-[#2d2d2d] transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    
+                    {/* View Profile */}
+                    <Link 
+                      href="/profile" 
+                      onClick={() => setIsProfileOpen(false)} 
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-[#2d2d2d] transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
                       View Profile
                     </Link>
                     
                     <div className="border-t border-stone-100 dark:border-[#2d2d2d] my-1"></div>
                     
-                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    {/* Logout Button */}
+                    <button 
+                      onClick={handleLogout} 
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
                       Logout
                     </button>
                   </div>
@@ -158,40 +204,80 @@ export default function Navbar() {
             
             <div className="border-t border-stone-200 dark:border-stone-800 my-2"></div>
 
-            {session?.user ? (
+            {status === 'authenticated' && session?.user ? (
               <>
+                {/* Mobile Profile Info */}
                 <div className="px-4 py-3 flex items-center gap-3">
-                  <Avatar size="w-10 h-10" textSize="text-base" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-stone-900 dark:text-white truncate">{session.user.name || 'User'}</p>
-                    <p className="text-xs text-stone-500 truncate">{session.user.email}</p>
+                  {showImage ? (
+                    <img 
+                      src={session.user.image} 
+                      alt="Profile" 
+                      className="w-10 h-10 rounded-full object-cover border-2 border-stone-200 dark:border-stone-700"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold border-2 border-stone-200 dark:border-stone-700">
+                      {userInitial}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-stone-900 dark:text-white truncate">
+                      {session.user.name || 'User'}
+                    </p>
+                    <p className="text-xs text-stone-500 truncate">
+                      {session.user.email}
+                    </p>
                   </div>
                 </div>
-                
-                {/* 🔥 Mobile Theme Toggle */}
+
+                {/* Mobile Theme Toggle */}
                 <button 
-                  onClick={() => { toggleTheme(); }} 
+                  onClick={() => { toggleTheme(); setMobileMenuOpen(false); }} 
                   className="flex items-center gap-3 py-3 px-4 text-stone-700 dark:text-stone-200 font-medium hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors rounded-lg text-left"
                 >
                   {theme === 'dark' ? (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
                   ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
                   )}
                   {theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                 </button>
 
-                {/* 🔥 Mobile Conditional Dashboard Link */}
-                <Link href={dashboardPath} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 text-stone-700 dark:text-stone-200 font-medium hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors rounded-lg">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                  {dashboardLabel}
+                {/* Mobile Dashboard Link */}
+                <Link 
+                  href={session.user.role === 'admin' ? '/admin' : '/dashboard'} 
+                  onClick={() => setMobileMenuOpen(false)} 
+                  className="flex items-center gap-3 py-3 px-4 text-stone-700 dark:text-stone-200 font-medium hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors rounded-lg"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                  {session.user.role === 'admin' ? 'Admin Dashboard' : 'Dashboard'}
                 </Link>
-                <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 text-stone-700 dark:text-stone-200 font-medium hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors rounded-lg">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+
+                {/* Mobile Profile Link */}
+                <Link 
+                  href="/profile" 
+                  onClick={() => setMobileMenuOpen(false)} 
+                  className="flex items-center gap-3 py-3 px-4 text-stone-700 dark:text-stone-200 font-medium hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors rounded-lg"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
                   View Profile
                 </Link>
-                <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="flex items-center gap-3 py-3 px-4 text-left text-red-600 dark:text-red-400 font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors rounded-lg">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+
+                <button 
+                  onClick={() => { handleLogout(); setMobileMenuOpen(false); }} 
+                  className="flex items-center gap-3 py-3 px-4 text-left text-red-600 dark:text-red-400 font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors rounded-lg"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
                   Logout
                 </button>
               </>
