@@ -1,29 +1,27 @@
-'use client'; // 🔥 MUST be the first line
+'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react'; // 🔥 1. Import Suspense
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth, useTheme } from '@/app/providers';
 import Navbar from '@/components/Navbar';
 
-export default function DashboardPage() {
+// 🔥 2. Move all your dashboard logic into this separate component
+function DashboardContent() {
   const { user, loading: authLoading } = useAuth();
-  const { data: session, status } = useSession(); // 🔥 'status', not 'sessionStatus'
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // 🔥 Now it's safe to use this here
   const { theme } = useTheme();
   
   const [isLoading, setIsLoading] = useState(true);
   const [enrollments, setEnrollments] = useState([]);
 
-  // 🔥 Combine both auth sources to prevent redirect loops
   const currentUser = session?.user || user;
   const displayName = currentUser?.name || 'Learner';
 
-  // 🔥 Auth Redirect Check
   useEffect(() => {
-    // Use 'status' here, matching the destructured variable
     if (status !== 'loading' && !authLoading) {
       if (!currentUser) {
         router.push('/login');
@@ -31,9 +29,7 @@ export default function DashboardPage() {
     }
   }, [currentUser, status, authLoading, router]);
 
-  // 🔥 Fetch Enrollments Data
   useEffect(() => {
-    // Safely get session_id
     const sessionId = searchParams ? searchParams.get('session_id') : null;
     
     if (sessionId && currentUser) {
@@ -64,7 +60,6 @@ export default function DashboardPage() {
     }
   }, [searchParams, currentUser]);
 
-  // 🔥 Loading State (Removed hardcoded bg-[#F9F3E7] so theme works)
   if (status === 'loading' || authLoading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-inherit dark:bg-black transition-colors duration-300">
@@ -76,13 +71,11 @@ export default function DashboardPage() {
     );
   }
 
-  // 🔥 Main Render (Removed hardcoded bg-[#F9F3E7] so ThemeBackground handles it)
   return (
     <div className="min-h-screen">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-28">
         
-        {/* Payment Success Banner */}
         {searchParams && searchParams.get('success') === 'true' && (
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-6 py-4 rounded-2xl mb-8 flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
             <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,10 +88,9 @@ export default function DashboardPage() {
           </div>
         )}
         
-        {/* Dashboard Header */}
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-10">
           <div>
-            <h1 className="text-3xl font-bold text-stone-900 dark:text-white" style={{ fontFamily: ", cursive" }}>My Learning Dashboard</h1>
+            <h1 className="text-3xl font-bold text-stone-900 dark:text-white">My Learning Dashboard</h1>
             <p className="text-stone-600 dark:text-stone-400 mt-1">Welcome back, {displayName}! Keep up the great work.</p>
           </div>
           <Link href="/courses" className="px-6 py-3 bg-stone-900 dark:bg-amber-600 text-[#F9F3E7] dark:text-white rounded-xl font-semibold hover:bg-stone-800 dark:hover:bg-amber-700 transition-all shadow-md text-center flex items-center justify-center gap-2">
@@ -107,7 +99,6 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* Empty State */}
         {enrollments.length === 0 ? (
           <div className="bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-xl p-16 rounded-3xl text-center border border-stone-200/60 dark:border-[#2d2d2d] shadow-sm">
             <div className="w-20 h-20 bg-stone-100 dark:bg-[#2d2d2d] rounded-full flex items-center justify-center mx-auto mb-6">
@@ -122,7 +113,6 @@ export default function DashboardPage() {
             </Link>
           </div>
         ) : (
-          /* Enrolled Courses Grid */
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {enrollments.map((enrollment) => {
               const courseId = enrollment.courseId._id || enrollment.courseId.id;
@@ -131,8 +121,6 @@ export default function DashboardPage() {
 
               return (
                 <div key={enrollment._id} className="group bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-xl rounded-2xl overflow-hidden border border-stone-200/60 dark:border-[#2d2d2d] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
-                  
-                  {/* Thumbnail */}
                   <Link href={`/learn/${courseId}`} className="relative h-48 overflow-hidden bg-stone-100 dark:bg-[#2d2d2d] block">
                     <img 
                       src={enrollment.courseId.thumbnail} 
@@ -150,7 +138,6 @@ export default function DashboardPage() {
                     </div>
                   </Link>
                   
-                  {/* Content */}
                   <div className="p-5 flex flex-col flex-1">
                     <Link href={`/learn/${courseId}`} className="block mb-3">
                       <h3 className="font-bold text-lg text-stone-900 dark:text-white line-clamp-2 group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
@@ -159,7 +146,6 @@ export default function DashboardPage() {
                     </Link>
                     
                     <div className="mt-auto space-y-4">
-                      {/* Progress Bar */}
                       <div>
                         <div className="flex justify-between text-sm text-stone-600 dark:text-stone-400 mb-1.5">
                           <span className="font-medium">Progress</span>
@@ -179,7 +165,6 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      {/* Action Buttons */}
                       <div className="flex gap-2 pt-2">
                         <Link 
                           href={`/learn/${courseId}`} 
@@ -191,7 +176,7 @@ export default function DashboardPage() {
                         
                         {enrollment.progress === 100 && (
                           <Link 
-                            href={`/certificate/${courseId}`} 
+                            href={`/profile`} 
                             className="flex-1 text-center py-2.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800 rounded-xl text-sm font-bold hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-all flex items-center justify-center gap-1"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
@@ -200,7 +185,6 @@ export default function DashboardPage() {
                         )}
                       </div>
                       
-                      {/* Lesson Count */}
                       <p className="text-xs text-stone-500 dark:text-stone-400 text-center pt-1 border-t border-stone-100 dark:border-[#2d2d2d]">
                         {completedLessons} of {totalLessons} lessons completed
                       </p>
@@ -213,5 +197,21 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// 🔥 3. Wrap the component in Suspense in the main default export
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#F9F3E7] dark:bg-black transition-colors duration-300">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-stone-200 border-t-amber-600 mx-auto mb-4"></div>
+          <p className="text-stone-600 dark:text-stone-400 font-medium">Loading your dashboard...</p>
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 }
