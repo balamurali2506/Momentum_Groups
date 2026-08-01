@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react'; // 🔥 1. Import Suspense
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
 
-export default function PaymentPage() {
+// 🔥 2. Move all logic into this separate component
+function PaymentContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // 🔥 Now it's safe to use this
   const { data: session, status } = useSession();
   const courseId = searchParams.get('courseId');
   
@@ -54,7 +55,6 @@ export default function PaymentPage() {
     setProcessing(true);
 
     try {
-      // 1. Create order on backend
       const orderRes = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,7 +70,6 @@ export default function PaymentPage() {
       
       if (!orderData.success) throw new Error(orderData.error || 'Failed to create order');
 
-      // 2. Load Razorpay script dynamically
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.async = true;
@@ -84,7 +83,6 @@ export default function PaymentPage() {
           description: course.title,
           order_id: orderData.orderId,
           handler: async function (response) {
-            // 3. Verify payment on backend
             try {
               const verifyRes = await fetch('/api/payments/verify', {
                 method: 'POST',
@@ -116,7 +114,7 @@ export default function PaymentPage() {
             email: session?.user?.email || '',
           },
           theme: {
-            color: '#d97706', // Matches your Amber-600 brand color
+            color: '#d97706',
           },
           modal: {
             ondismiss: function() {
@@ -262,5 +260,18 @@ export default function PaymentPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 🔥 3. Wrap in Suspense in the main export
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F9F3E7] dark:bg-black flex items-center justify-center transition-colors">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-stone-200 border-t-amber-600"></div>
+      </div>
+    }>
+      <PaymentContent />
+    </Suspense>
   );
 }
